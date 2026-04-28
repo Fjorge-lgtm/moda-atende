@@ -53,7 +53,10 @@ loja_roupas/
     ├── editar_atendimento.html   ← Edição de ticket (atendente/admin)
     ├── usuarios.html             ← Listagem de usuários (admin)
     ├── novo_usuario.html         ← Criação de usuário (admin)
-    └── editar_usuario.html       ← Edição de usuário (admin)
+    ├── editar_usuario.html       ← Edição de usuário (admin)
+    ├── produtos.html             ← Controle de estoque (atendente/admin)
+    ├── novo_produto.html         ← Adição de produto ao estoque
+    └── editar_produto.html       ← Edição de produto
 ```
 
 ---
@@ -64,17 +67,35 @@ loja_roupas/
 - Acessa painel com estatísticas gerais e gráfico de distribuição
 - Cria, edita e exclui **todos os usuários**
 - Cria, edita e exclui **todos os atendimentos**
+- Gerencia controle de estoque (bolsas, sapatos, cintos)
 - Acessa todos os dashboards
 
 ### 🎧 Atendente
 - Vê tickets abertos sem responsável e pode **assumir**
 - Edita status e responsável dos seus tickets
+- Gerencia controle de estoque (bolsas, sapatos, cintos)
 - Não acessa painel administrativo nem gestão de usuários
 
 ### 🛍️ Cliente
 - Abre novos atendimentos com seletor de tipo
 - Acompanha status dos **seus próprios** atendimentos
 - Vê quem é o atendente responsável
+
+---
+
+## 📦 Controle de Estoque
+
+O sistema inclui controle completo de estoque para três categorias principais:
+- **Bolsas** 👜
+- **Sapatos** 👠  
+- **Cintos** 🪢
+
+### Funcionalidades:
+- Cadastro de produtos com nome, categoria, quantidade e preço
+- Edição de informações dos produtos
+- Exclusão de produtos (apenas administradores)
+- Visualização organizada por categoria
+- Controle de acesso por cargo
 
 ---
 
@@ -96,6 +117,34 @@ loja_roupas/
 - Validação dupla: JavaScript (UX rápida) + Python (segurança real)
 
 ---
+
+## 🐳 Executar com Docker
+
+```bash
+# Criar Dockerfile na raiz do projeto:
+# FROM python:3.11-slim
+# WORKDIR /app
+# COPY requirements.txt .
+# RUN pip install -r requirements.txt
+# COPY . .
+# EXPOSE 5000
+# CMD ["python", "app.py"]
+
+docker build -t moda-atende .
+docker run -d --name moda -p 5000:5000 -v moda_data:/app/instance moda-atende
+```
+
+---
+
+## 📦 Dependências
+
+```
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.1
+Werkzeug>=3.0.0
+```
+
+> O banco `instance/loja_roupas.db` é criado automaticamente na primeira execução.
 
 ## 🐳 Executar com Docker
 
