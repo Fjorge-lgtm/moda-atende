@@ -10,7 +10,8 @@ from flask import (
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
+from sqlalchemy import func, extract
 import os
 
 # -------------------------------------------------------------
@@ -434,6 +435,92 @@ def excluir_produto(id):
     db.session.commit()
     flash('Produto removido do estoque.', 'info')
     return redirect(url_for('listar_produtos'))
+
+
+# =============================================================
+# RELATÓRIOS
+# =============================================================
+
+@app.route('/relatorio/clientes-atendidos', methods=['GET', 'POST'])
+@login_obrigatorio
+@cargo_obrigatorio('Atendente', 'Administrador')
+def relatorio_clientes_atendidos():
+    """Relatório de clientes atendidos em um mês específico com histórico."""
+    
+    # Data atual
+    hoje = datetime.utcnow()
+    
+    # Pegar parâmetros do formulário
+    ano = request.args.get('ano', default=hoje.year, type=int)
+    mes = request.args.get('mes', default=hoje.month, type=int)
+    
+    # Validar mês e ano
+    if mes < 1 or mes > 12:
+        mes = hoje.month
+    if ano < 2020 or ano > hoje.year + 1:
+        ano = hoje.year
+    
+    # Query: Clientes atendidos naquele mês (com status 'Concluido')
+    atendimentos_mes = db.session.query(
+        Atendimento.cliente_id,
+        Usuario.nome,
+        Usuario.email,
+        func.count(Atendimento.id).label('qtd_atendimentos'),
+        func.min(Atendimento.data_criacao).label('primeiro_atendimento'),
+        func.max(Atendimento.data_criacao).label('ultimo_atendimento')
+    ).join(Usuario, Atendimento.cliente_id == Usuario.id).filter(
+        extract('month', Atendimento.data_criacao) == mes,
+        extract('year', Atendimento.data_criacao) == ano,
+        Atendimento.status == 'Concluido'
+    ).group_by(Atendimento.cliente_id, Usuario.nome, Usuario.email).order_by(
+        func.count(Atendimento.id).desc()
+    ).all()
+    
+    # Query: Histórico dos últimos 12 meses (resumo por mês)
+    historico = db.session.query(
+        extract('year', Atendimento.data_criacao).label('ano'),
+        extract('month', Atendimento.data_criacao).label('mes'),
+        func.count(func.distinct(Atendimento.cliente_id)).label('clientes_unicos'),
+        func.count(Atendimento.id).label('total_atendimentos')
+    ).filter(
+        Atendimento.status == 'Concluido',
+        Atendimento.data_criacao >= (hoje - timedelta(days=365))
+    ).group_by(
+        extract('year', Atendimento.data_criacao),
+        extract('month', Atendimento.data_criacao)
+    ).order_by(
+        extract('year', Atendimento.data_criacao).desc(),
+        extract('month', Atendimento.data_criacao).desc()
+    ).all()
+    
+    # Formatar histórico com nomes dos meses
+    meses_nomes = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    historico_formatado = []
+    for item in historico:
+        historico_formatado.append({
+            'ano': int(item[0]),
+            'mes': int(item[1]),
+            'mes_nome': meses_nomes[int(item[1])],
+            'clientes_unicos': item[2],
+            'total_atendimentos': item[3]
+        })
+    
+    # Estatísticas do mês
+    total_clientes = len(atendimentos_mes)
+    total_atendimentos = sum([a[3] for a in atendimentos_mes])
+    
+    return render_template('relatorio_clientes_mes.html',
+        ano=ano,
+        mes=mes,
+        mes_nome=meses_nomes[mes],
+        atendimentos=atendimentos_mes,
+        total_clientes=total_clientes,
+        total_atendimentos=total_atendimentos,
+        historico=historico_formatado,
+        meses_nomes=meses_nomes,
+        now=hoje
+    )
 
 
 # =============================================================

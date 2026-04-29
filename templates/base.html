@@ -28,6 +28,9 @@
                 {% endif %}
                 
                 {% if session.cargo in ['Atendente', 'Administrador'] %}
+                <a href="{{ url_for('relatorio_clientes_atendidos') }}" class="nav-item">
+                    📈 Relatório de Clientes
+                </a>
                 <a href="{{ url_for('listar_produtos') }}" class="nav-item">
                     📦 Controle de Estoque
                 </a>

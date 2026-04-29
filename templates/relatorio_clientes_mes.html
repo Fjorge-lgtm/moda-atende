@@ -1,0 +1,583 @@
+{% extends 'base.html' %}
+
+{% block conteudo %}
+<div class="relatorio-container">
+    <div class="relatorio-header">
+        <h1>📊 Relatório de Clientes Atendidos</h1>
+        <p>Acompanhe os clientes atendidos por mês com histórico detalhado</p>
+    </div>
+
+    <!-- Filtro de Mês/Ano -->
+    <section class="filtro-section">
+        <h3>Selecione o Período</h3>
+        <form method="GET" class="filtro-form">
+            <div class="filtro-group">
+                <label for="mes">Mês:</label>
+                <select name="mes" id="mes" onchange="this.form.submit()">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == mes %}selected{% endif %}>
+                        {{ meses_nomes[m] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filtro-group">
+                <label for="ano">Ano:</label>
+                <select name="ano" id="ano" onchange="this.form.submit()">
+                    {% for a in range(2020, now.year + 2) %}
+                    <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </section>
+
+    <!-- Estatísticas do Mês -->
+    <section class="stats-section">
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <h4>Clientes Únicos</h4>
+                <p class="stat-value">{{ total_clientes }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-content">
+                <h4>Total de Atendimentos</h4>
+                <p class="stat-value">{{ total_atendimentos }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <h4>Período</h4>
+                <p class="stat-value">{{ mes_nome }}/{{ ano }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-content">
+                <h4>Média por Cliente</h4>
+                <p class="stat-value">
+                    {% if total_clientes > 0 %}
+                        {{ "%.1f"|format(total_atendimentos / total_clientes) }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tabela de Clientes Atendidos -->
+    <section class="clientes-section">
+        <h3>🎯 Clientes Atendidos em {{ mes_nome }}/{{ ano }}</h3>
+        
+        {% if atendimentos %}
+            <div class="table-responsive">
+                <table class="tabela-clientes">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Cliente</th>
+                            <th>E-mail</th>
+                            <th>Atendimentos</th>
+                            <th>Primeiro Atendimento</th>
+                            <th>Último Atendimento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in atendimentos %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td class="cliente-nome">{{ cliente[1] }}</td>
+                            <td>{{ cliente[2] }}</td>
+                            <td>
+                                <span class="badge badge-info">{{ cliente[3] }}</span>
+                            </td>
+                            <td>{{ cliente[4].strftime('%d/%m/%Y %H:%M') if cliente[4] else '-' }}</td>
+                            <td>{{ cliente[5].strftime('%d/%m/%Y %H:%M') if cliente[5] else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>📭 Nenhum cliente atendido neste período</p>
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Histórico dos Últimos 12 Meses -->
+    <section class="historico-section">
+        <h3>📈 Histórico dos Últimos 12 Meses</h3>
+        
+        {% if historico %}
+            <div class="historico-grid">
+                {% for mes_hist in historico %}
+                <div class="historico-card">
+                    <div class="historico-title">
+                        {{ mes_hist.mes_nome }} {{ mes_hist.ano }}
+                    </div>
+                    <div class="historico-stats">
+                        <div class="historico-stat">
+                            <span class="historico-label">Clientes</span>
+                            <span class="historico-valor">{{ mes_hist.clientes_unicos }}</span>
+                        </div>
+                        <div class="historico-stat">
+                            <span class="historico-label">Atendimentos</span>
+                            <span class="historico-valor">{{ mes_hist.total_atendimentos }}</span>
+                        </div>
+                    </div>
+                    <div class="historico-bar">
+                        <div class="bar-fill" style="width: {{ (mes_hist.total_atendimentos / 50) * 100 }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <p>📭 Sem dados de histórico</p>
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Ações -->
+    <section class="acoes-section">
+        <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimir</button>
+        <button onclick="exportarCSV()" class="btn btn-secondary">📥 Exportar CSV</button>
+    </section>
+</div>
+
+<style>
+.relatorio-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.relatorio-header {
+    margin-bottom: 40px;
+}
+
+.relatorio-header h1 {
+    font-size: 2.5rem;
+    margin: 0 0 10px 0;
+    color: #333;
+}
+
+.relatorio-header p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+/* Filtro */
+.filtro-section {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.filtro-section h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.filtro-form {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filtro-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filtro-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.filtro-group select {
+    padding: 10px 15px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.filtro-group select:hover,
+.filtro-group select:focus {
+    border-color: #8b5a8f;
+    outline: none;
+}
+
+/* Estatísticas */
+.stats-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.stat-card:nth-child(2) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card:nth-child(3) {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card:nth-child(4) {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-content h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+.stat-value {
+    margin: 8px 0 0 0;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Tabela */
+.clientes-section,
+.historico-section,
+.acoes-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.clientes-section h3,
+.historico-section h3 {
+    margin-top: 0;
+    color: #333;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.tabela-clientes {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.tabela-clientes thead {
+    background-color: #f8f9fa;
+}
+
+.tabela-clientes th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+.tabela-clientes td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.tabela-clientes tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.cliente-nome {
+    font-weight: 600;
+    color: #8b5a8f;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.badge-info {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+/* Histórico */
+.historico-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.historico-card {
+    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid #8b5a8f;
+}
+
+.historico-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.05rem;
+}
+
+.historico-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.historico-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.historico-label {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.historico-valor {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #8b5a8f;
+}
+
+.historico-bar {
+    background-color: #ddd;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #999;
+    font-size: 1.1rem;
+}
+
+/* Botões */
+.acoes-section {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 2px solid #ddd;
+}
+
+.btn-secondary:hover {
+    background-color: #e8e8e8;
+    border-color: #bbb;
+}
+
+/* Print */
+@media print {
+    .sidebar,
+    .topbar,
+    .filtro-section,
+    .acoes-section {
+        display: none;
+    }
+
+    .relatorio-container {
+        max-width: 100%;
+    }
+
+    .stat-card {
+        page-break-inside: avoid;
+    }
+
+    .tabela-clientes {
+        page-break-inside: avoid;
+    }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .relatorio-header h1 {
+        font-size: 2rem;
+    }
+
+    .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filtro-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filtro-group select {
+        width: 100%;
+    }
+
+    .tabela-clientes {
+        font-size: 0.85rem;
+    }
+
+    .tabela-clientes th,
+    .tabela-clientes td {
+        padding: 8px;
+    }
+
+    .historico-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .acoes-section {
+        flex-direction: column;
+        justify-content: stretch;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .relatorio-container {
+        padding: 10px;
+    }
+
+    .stats-section {
+        grid-template-columns: 1fr;
+    }
+
+    .historico-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tabela-clientes th,
+    .tabela-clientes td {
+        padding: 6px;
+        font-size: 0.8rem;
+    }
+}
+</style>
+
+<script>
+// Calcular ano atual para o formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const anoSelect = document.getElementById('ano');
+    const hoje = new Date();
+    // O template já gera as opções, então isso é apenas para referência
+});
+
+function exportarCSV() {
+    const table = document.querySelector('.tabela-clientes');
+    let csv = 'Cliente,E-mail,Atendimentos,Primeiro Atendimento,Último Atendimento\n';
+    
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => {
+            let text = cell.textContent.trim();
+            // Escapar aspas duplas
+            text = text.replace(/"/g, '""');
+            // Envolver em aspas se contiver vírgula
+            if (text.includes(',')) {
+                text = `"${text}"`;
+            }
+            return text;
+        });
+        csv += rowData.slice(1).join(',') + '\n'; // Pular coluna de índice
+    });
+    
+    // Adicionar data
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    csv = `Relatório de Clientes Atendidos\nData de Geração: ${dataAtual}\n\n${csv}`;
+    
+    // Criar blob e download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `relatorio-clientes-${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}
