@@ -106,7 +106,7 @@
         {% for a in recentes %}
         <tr>
           <td class="td-mono">#{{ a.id }}</td>
-          <td>{{ a.cliente.nome }}</td>
+          <td>{{ a.cliente.nome if a.cliente else 'Cliente não encontrado' }}</td>
           <td class="td-suave oculto-mobile">
             {{ a.atendente.nome if a.atendente else '—' }}
           </td>
