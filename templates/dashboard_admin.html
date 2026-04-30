@@ -94,7 +94,7 @@
       <thead>
         <tr>
           <th>#</th>
-          <th>Cliente</th>
+          <th>Cliente</th> <!-- Exibe o nome do cliente associado ao ticket -->
           <th class="oculto-mobile">Atendente</th>
           <th class="oculto-mobile">Descrição</th>
           <th>Status</th>
@@ -106,7 +106,7 @@
         {% for a in recentes %}
         <tr>
           <td class="td-mono">#{{ a.id }}</td>
-          <td>{{ a.cliente.nome if a.cliente else 'Cliente não encontrado' }}</td>
+          <td title="Nome do cliente do ticket">{{ a.cliente.nome if a.cliente else 'Cliente não encontrado' }}</td>
           <td class="td-suave oculto-mobile">
             {{ a.atendente.nome if a.atendente else '—' }}
           </td>
