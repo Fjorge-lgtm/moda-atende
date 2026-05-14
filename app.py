@@ -1,7 +1,5 @@
-# =============================================================
 # app.py — Loja de Roupas | Sistema de Atendimento
 # Framework: Flask + SQLAlchemy + SQLite
-# =============================================================
 
 from flask import (
     Flask, render_template, request,
@@ -39,9 +37,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 
-# =============================================================
 # MODELOS
-# =============================================================
 
 class Usuario(db.Model):
     """Tabela de usuários: Cliente, Atendente ou Administrador."""
@@ -99,9 +95,7 @@ class Produto(db.Model):
     data_cadastro = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-# =============================================================
 # DECORADORES DE ACESSO
-# =============================================================
 
 def login_obrigatorio(f):
     """Bloqueia rotas para usuários não autenticados."""
@@ -127,9 +121,7 @@ def cargo_obrigatorio(*cargos):
     return decorador
 
 
-# =============================================================
 # AUTENTICAÇÃO
-# =============================================================
 
 
 
@@ -171,9 +163,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-# =============================================================
 # DASHBOARDS
-# =============================================================
 
 @app.route('/dashboard')
 @login_obrigatorio
@@ -231,9 +221,7 @@ def painel_cliente():
     )
 
 
-# =============================================================
 # CRUD — ATENDIMENTOS
-# =============================================================
 
 @app.route('/atendimentos/novo', methods=['GET', 'POST'])
 @login_obrigatorio
@@ -312,9 +300,7 @@ def excluir_atendimento(id):
     return redirect(url_for('painel_admin'))
 
 
-# =============================================================
 # CRUD — USUÁRIOS
-# =============================================================
 
 @app.route('/usuarios')
 @login_obrigatorio
@@ -408,9 +394,7 @@ def excluir_usuario(id):
     return redirect(url_for('listar_usuarios'))
 
 
-# =============================================================
 # CRUD — PRODUTOS (CONTROLE DE ESTOQUE)
-# =============================================================
 
 @app.route('/produtos')
 @login_obrigatorio
@@ -477,9 +461,7 @@ def excluir_produto(id):
     return redirect(url_for('listar_produtos'))
 
 
-# =============================================================
 # RELATÓRIOS
-# =============================================================
 
 @app.route('/relatorio/clientes-atendidos', methods=['GET', 'POST'])
 @login_obrigatorio
@@ -689,9 +671,7 @@ def relatorio_clientes_atendidos():
     )
 
 
-# =============================================================
 # DADOS DE EXEMPLO
-# =============================================================
 
 def seed():
     """Cria dados iniciais de demonstração."""
@@ -738,21 +718,24 @@ def seed():
     print('✅ Dados de exemplo criados!')
 
 
+# INICIALIZAÇÃO DO BANCO (Compatível com Vercel/Serverless)
+with app.app_context():
+    db.create_all()
+
 # =============================================================
 # INICIALIZAÇÃO DO BANCO (Compatível com Vercel/Serverless)
 # =============================================================
-with app.app_context():
-    db.create_all()
-    seed()
+@app.before_request
+def initialize_database():
+    """Inicializa o banco de dados antes da primeira requisição."""
+    if not hasattr(app, "db_initialized"):
+        try:
+            db.create_all()
+            seed()
+            app.db_initialized = True
+        except Exception as e:
+            app.logger.error(f"Erro ao inicializar banco: {e}")
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)==================================
-try:
-    with app.app_context():
-        db.create_all()
-        seed()
-except Exception as e:
-    print(f"Erro ao inicializar banco de dados: {e}")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
