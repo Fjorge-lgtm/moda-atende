@@ -737,8 +737,12 @@ def seed():
     print('✅ Dados de exemplo criados!')
 
 
+# =============================================================
+# INICIALIZAÇÃO DO BANCO (Compatível com Vercel/Serverless)
+# =============================================================
+with app.app_context():
+    db.create_all()
+    seed()
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-        seed()
     app.run(debug=True, port=5000)
