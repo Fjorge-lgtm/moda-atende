@@ -23,16 +23,17 @@ import os
 # -------------------------------------------------------------
 app = Flask(__name__)
 
-# CORREÇÃO 16: Banco de dados com caminho absoluto e pasta dedicada.
-# Era: 'sqlite:///loja_roupas.db' → criava o arquivo em instance/ sem controle.
-# Agora: pasta 'database/' explícita na raiz do projeto, criada automaticamente.
-# Em Docker, aponte o volume para esta pasta: -v ./database:/app/database
-BASE_DIR     = os.path.abspath(os.path.dirname(__file__))
-DATABASE_DIR = os.path.join(BASE_DIR, 'database')
-os.makedirs(DATABASE_DIR, exist_ok=True)   # Cria a pasta se não existir
+# VERCEL COMPATIBILITY: Use /tmp for SQLite in serverless environments
+if os.environ.get('VERCEL'):
+    DATABASE_PATH = '/tmp/loja_roupas.db'
+else:
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    DATABASE_DIR = os.path.join(BASE_DIR, 'database')
+    os.makedirs(DATABASE_DIR, exist_ok=True)
+    DATABASE_PATH = os.path.join(DATABASE_DIR, 'loja_roupas.db')
 
 app.config['SECRET_KEY']              = os.environ.get('SECRET_KEY', 'loja-roupas-2024')
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(DATABASE_DIR, 'loja_roupas.db')}"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DATABASE_PATH}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -743,6 +744,15 @@ def seed():
 with app.app_context():
     db.create_all()
     seed()
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)==================================
+try:
+    with app.app_context():
+        db.create_all()
+        seed()
+except Exception as e:
+    print(f"Erro ao inicializar banco de dados: {e}")
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
