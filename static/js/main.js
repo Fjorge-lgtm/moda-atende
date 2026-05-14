@@ -12,6 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const applyTheme = (theme) => {
         html.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+            html.classList.add('dark');
+        } else {
+            html.classList.remove('dark');
+        }
         if (darkIcon) {
             darkIcon.className = theme === 'dark'
                 ? 'bi bi-sun-fill'
